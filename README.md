@@ -5,7 +5,7 @@ Firmware build tools for Phase-1 uGT
 ## Install
 
 ```bash
-pip install https://github.com/cms-l1-globaltrigger/ugt-fwtools.git
+pip install git+https://github.com/cms-l1-globaltrigger/ugt-fwtools.git@1.0.0
 ```
 
 ## Synthesis

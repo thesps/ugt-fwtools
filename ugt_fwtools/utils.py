@@ -138,7 +138,7 @@ def parse_xml(filename: str) -> Dict:
 
     def get_text(name):
         node = root.find(name)
-        return node.text if node else ""
+        return "" if nide is None else node.text
 
     data: Dict = {}
     data["name"] = get_text('./name')
