@@ -7,10 +7,11 @@ import subprocess
 import urllib.request
 import urllib.parse
 import urllib.error
+from typing import Dict, List
 
 from . import utils
 
-BoardAliases = {
+BoardAliases: Dict[str, str] = {
     "mp7xe_690": "xe",
 }
 
@@ -26,30 +27,30 @@ vivadoPath = os.path.abspath(os.path.join(VivadoBaseDir, DefaultVivadoVersion))
 if not os.path.isdir(vivadoPath):
     raise RuntimeError("No installation of Vivado in %r" % vivadoPath)
 
-DefaultBoardType = "mp7xe_690"
+DefaultBoardType: str = "mp7xe_690"
 """Default board type to be used."""
 
-DefaultFirmwareDir = os.path.expanduser("~/work_synth/production")
+DefaultFirmwareDir: str = os.path.expanduser("~/work_synth/production")
 """Default output directory for firmware builds."""
 
-DefaultGitlabUrlIPB = "https://github.com/ipbus/ipbus-firmware.git"
+DefaultGitlabUrlIPB: str = "https://github.com/ipbus/ipbus-firmware.git"
 """Default URL IPB FW repo."""
 
-DefaultIpbFwTag = "v1.4"
+DefaultIpbFwTag: str = "v1.4"
 """Default tag IPB FW repo."""
 
-DefaultGitlabUrlMP7 = "https://gitlab.cern.ch/arnold/mp7.git"
+DefaultGitlabUrlMP7: str = "https://gitlab.cern.ch/arnold/mp7.git"
 """Default URL MP7 FW repo."""
 
-DefaultMP7Tag = "v3.2.2_Vivado2021+_ugt"
+DefaultMP7Tag: str = "v3.2.2_Vivado2021+_ugt"
 """Default tag MP7 FW repo."""
 
-vhdl_snippets = (
+vhdl_snippets: List[str] = [
     "algo_index.vhd",
     "gtl_module_instances.vhd",
     "gtl_module_signals.vhd",
-    "ugt_constants.vhd"
-)
+    "ugt_constants.vhd",
+]
 
 
 def raw_build(build: str) -> str:
@@ -61,17 +62,17 @@ def show_screen_sessions() -> None:
     subprocess.run(["screen", "-ls"])
 
 
-def start_screen_session(session: str, command: str) -> None:
-    subprocess.run(f"screen -dmS  {session} {command}", shell=True).check_returncode()
+def start_screen_session(session: str, commands: str) -> None:
+    subprocess.run(["screen", "-dmS", session, "bash", "-c", commands]).check_returncode()
 
 
 def get_ipbb_version() -> str:
-    r = subprocess.run(["ipbb", "--version"], stdout=subprocess.PIPE)
-    return r.stdout.decode().split()[-1].strip()  # ipbb, version 0.5.2
+    result = subprocess.run(["ipbb", "--version"], stdout=subprocess.PIPE)
+    return result.stdout.decode().split()[-1].strip()  # ipbb, version 0.5.2
 
 
 def download_file_from_url(url: str, filename: str) -> None:
-    """Download files from URL."""
+    """Download file from URL."""
     # Remove existing file.
     utils.remove(filename)
     # Download file
@@ -79,7 +80,7 @@ def download_file_from_url(url: str, filename: str) -> None:
     urllib.request.urlretrieve(url, filename)
 
 
-def replace_vhdl_templates(vhdl_snippets_dir, src_fw_dir, dest_fw_dir):
+def replace_vhdl_templates(vhdl_snippets_dir: str, src_fw_dir: str, dest_fw_dir: str) -> None:
     """Replace VHDL templates with snippets from VHDL Producer."""
     # Read generated VHDL snippets
     logging.info("replace VHDL templates with snippets from VHDL Producer ...")
@@ -117,7 +118,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Main routine."""
 
     # Parse command line arguments.
@@ -274,7 +275,7 @@ def main():
         cmd_ipbb_synth = "ipbb vivado synth impl package"
 
         # Set variable "module_id" for tcl script (l1menu_files.tcl in uGT_algo.dep)
-        command = f'bash -c "cd; source {settings64}; cd {ipbb_dir}/proj/{module_name}; module_id={module_id} {cmd_ipbb_project} && {cmd_ipbb_synth}"'
+        command = f'cd; source {settings64}; cd {ipbb_dir}/proj/{module_name}; module_id={module_id} {cmd_ipbb_project} && {cmd_ipbb_synth}'
 
         session = f"build_{project_type}_{args.build}_{module_id}"
         logging.info("starting screen session %r for module %s ...", session, module_id)

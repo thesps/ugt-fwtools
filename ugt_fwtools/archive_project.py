@@ -8,7 +8,7 @@ from . import utils
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("config")
+    parser.add_argument("filename", help="build config file (*.cfg)")
     parser.add_argument("-m", type=int)
     return parser.parse_args()
 
@@ -17,10 +17,10 @@ def main():
     args = parse_args()
 
     config = configparser.ConfigParser()
-    config.read(args.config)
+    config.read(args.filename)
     menu_build = config["menu"]["build"]
     menu_modules = int(config["menu"]["modules"])
-    buildarea = os.path.dirname(args.config)
+    buildarea = os.path.dirname(args.filename)  # relative to build config
 
     if args.m is not None:
         module_ids = [f"module_{args.m}"]
@@ -34,7 +34,6 @@ def main():
             source.write(f"open_project {project_file}\n".encode())
             source.write(f"archive_project {archive_file}\n".encode())
             source.flush()
-            with open(source.name) as x: print(x.read())
             utils.vivado_batch(source.name)
 
 

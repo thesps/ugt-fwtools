@@ -24,7 +24,7 @@ def detect_tm_reporter_version(filename):
     <meta name="generator" content="tm-reporter 2.7.2">
     """
     regex = re.compile(r'^.*tm-reporter\s+(\d+\.\d+\.\d+)')
-    with open(filename) as fp:
+    with open(filename, "rt") as fp:
         for line in fp:
             m = regex.match(line)
             if m:
@@ -36,7 +36,7 @@ def detect_versions_vx_y_z(filename, needle):
     """Try to detect versions of VHDL producer, tmEventSetup, etc. from comments of generated output
     VHDL files. Returns version string or None if no information was found.
     """
-    with open(filename) as fp:
+    with open(filename, "rt") as fp:
         prev = ""
         for line in fp:
             if prev.startswith(needle):
@@ -53,7 +53,7 @@ def detect_gt_versions(filename):
     """
     versions = {}
     regex = re.compile(r'^\s*\w+\s+(\w+)_(\w+)_VERSION.*\:\=\s*(\d+)')
-    with open(filename) as fp:
+    with open(filename, "rt") as fp:
         for line in fp:
             m = regex.match(line)
             if m:

@@ -99,7 +99,7 @@ def template_replace(template: str, replace_map: dict, result: str) -> None:
 
     """
     # Read content of source file.
-    with open(template) as fp:
+    with open(template, "rt") as fp:
         lines = fp.readlines()
     # Replace placeholders.
     for key, value in list(replace_map.items()):

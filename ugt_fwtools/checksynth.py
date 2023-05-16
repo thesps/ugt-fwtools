@@ -100,7 +100,7 @@ class Analyzer:
         self.logger.info("")
 
         # opens file as .log
-        with open(runme_log_synth) as fp:
+        with open(runme_log_synth, "rt") as fp:
             for line in fp:
                 line = line.lstrip()
                 # checks in current line if error is at the beginning
@@ -129,7 +129,7 @@ class Analyzer:
                         self.logger.hr("-")
 
         # opens file as .log
-        with open(runme_log_impl) as fp:
+        with open(runme_log_impl, "rt") as fp:
             for line in fp:
                 line = line.lstrip()
                 # checks in current line if error is at the beginning
@@ -171,7 +171,7 @@ class Analyzer:
                 return
 
         # Parse timing summary
-        with open(timing_summary) as fp:
+        with open(timing_summary, "rt") as fp:
             while True:
                 line = fp.readline()
                 # checks if line is empty (EOF)!
@@ -220,7 +220,7 @@ class Analyzer:
 
         self.utilization[module_id] = []
 
-        with open(utilization_placed) as fp:
+        with open(utilization_placed, "rt") as fp:
             for line in fp:
                 if line.startswith("| Slice LUTs"):
                     self.utilization[module_id].append(parse_utilization(line))
