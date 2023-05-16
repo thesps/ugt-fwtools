@@ -4,6 +4,7 @@ import shutil
 import stat
 import pwd
 import socket
+import subprocess
 import os
 import re
 from xml.etree import ElementTree as ET
@@ -146,3 +147,7 @@ def parse_xml(filename: str) -> Dict:
     data["uuid_firmware"] = get_text('./uuid_firmware')
     data["n_modules"] = int(get_text('./n_modules'))
     return data
+
+
+def vivado_batch(source: str) -> None:
+    subprocess.run(["vivado", "-mode", "batch", "-source", source, "-nojournal", "-nolog"]).check_returncode()
