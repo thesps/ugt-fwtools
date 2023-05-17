@@ -2,6 +2,7 @@ import argparse
 import configparser
 import logging
 import os
+import pathlib
 import shutil
 import subprocess
 import urllib.request
@@ -80,6 +81,19 @@ def download_file_from_url(url: str, filename: str) -> None:
     urllib.request.urlretrieve(url, filename)
 
 
+def get_uri(path: str) -> str:
+    """Return URI from path or URI."""
+    if urllib.parse.urlparse(path).scheme:
+        return path
+    else:
+        uri_path = pathlib.Path(path).resolve()
+        return urllib.parse.urljoin("file:", urllib.request.pathname2url(str(uri_path)))
+
+
+def get_menu_name(path: str) -> str:
+    return os.path.splitext(os.path.basename(path))[0]
+
+
 def replace_vhdl_templates(vhdl_snippets_dir: str, src_fw_dir: str, dest_fw_dir: str) -> None:
     """Replace VHDL templates with snippets from VHDL Producer."""
     # Read generated VHDL snippets
@@ -124,27 +138,11 @@ def main() -> None:
     # Parse command line arguments.
     args = parse_args()
 
-    xml_url = urllib.parse.urlparse(args.menu_xml)
+    xml_uri = get_uri(args.menu_xml)
+    menu_name = get_menu_name(xml_uri)
 
-    # TODO
-    menu_path = args.menu_xml.split("/")[:-2]
-    menu_xml_name = args.menu_xml.split("/")[-1]
-    menuname = menu_xml_name.split(".")[0]
     # check menu name
-    utils.menuname_t(menuname)
-
-    # TODO
-    if xml_url.scheme:
-        menu_year = utils.year_str_t(args.menu_xml.split("/")[-4])
-        base = f"{xml_url.scheme}://{menu_path[2]}/{menu_path[3]}/{menu_path[4]}/{menu_path[5]}/{menu_year}/{menuname}"
-    else:
-        base = "/".join(menu_path)
-
-    # TODO
-    xml_name = f"{menuname}.xml"
-    html_name = f"{menuname}.html"
-    menu_url = f"{base}/xml/{xml_name}"
-    doc_url = f"{base}/doc/{html_name}"
+    utils.menuname_t(menu_name)
 
     # Setup console logging
     logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
@@ -166,13 +164,13 @@ def main() -> None:
     # Project type taken from ugturl repo name
     project_type_repo_name = os.path.basename(args.ugturl)
     if project_type_repo_name.find(".") > 0:
-        project_type = project_type_repo_name.split(".")    # Remove ".git" from repo name
+        project_type = project_type_repo_name.split(".")[0]    # Remove ".git" from repo name
     else:
         project_type = project_type_repo_name
 
     # TODO
     vivado_version = f"vivado_{args.vivado}"
-    ipbb_dir = os.path.join(args.path, args.build, menuname, project_type, args.ugt, args.mp7tag, vivado_version)
+    ipbb_dir = os.path.join(args.path, args.build, menu_name, project_type, args.ugt, args.mp7tag, vivado_version)
     ipbb_dir_build = os.path.join(args.path, args.build)
 
     if os.path.isdir(ipbb_dir_build):
@@ -190,23 +188,20 @@ def main() -> None:
     subprocess.run(["ipbb", "add", "git", args.mp7url, "-b", args.mp7tag], cwd=ipbb_dir).check_returncode()
     subprocess.run(["ipbb", "add", "git", args.ugturl, "-b", args.ugt], cwd=ipbb_dir).check_returncode()
 
+    xml_filename = os.path.join(ipbb_dir, "src", f"{menu_name}.xml")
+
     logging.info("===========================================================================")
-    logging.info("download XML file from L1Menu repository ...")
+    logging.info("retrieve %r...", xml_filename)
+    download_file_from_url(xml_uri, xml_filename)
 
-    # TODO
-    filename = os.path.join(ipbb_dir, "src", xml_name)
-    if xml_url.scheme:
-        download_file_from_url(menu_url, filename)
-    else:
-        shutil.copyfile(menu_url, filename)
-    menu = utils.parse_xml(filename)
+    html_uri = urllib.parse.urljoin(xml_uri, f"../doc/{menu_name}.html")
+    html_filename = os.path.join(ipbb_dir, "src", f"{menu_name}.html")
 
-    # TODO
-    filename = os.path.join(ipbb_dir, "src", html_name)
-    if xml_url.scheme:
-        download_file_from_url(doc_url, filename)
-    else:
-        shutil.copyfile(doc_url, filename)
+    logging.info("===========================================================================")
+    logging.info("retrieve %r...", html_filename)
+    download_file_from_url(html_uri, html_filename)
+
+    menu = utils.parse_xml(xml_filename)
 
     # Fetch menu name from path.
     menu_name = menu["name"]
@@ -233,19 +228,15 @@ def main() -> None:
         logging.info("===========================================================================")
         logging.info(" *** module %s ***", module_id)
         logging.info("===========================================================================")
-        logging.info("download generated VHDL snippets from L1Menu repository for module %s and replace VHDL templates ...", module_id)
+        logging.info("retrieve VHDL snippets for module %s and replace VHDL templates ...", module_id)
         vhdl_snippets_dir = os.path.join(ipbb_dest_fw_dir, "vhdl_snippets")
         os.makedirs(vhdl_snippets_dir)
 
         # TODO
-        for i in range(len(vhdl_snippets)):
-            vhdl_snippet = vhdl_snippets[i]
+        for vhdl_snippet in vhdl_snippets:
             filename = os.path.join(vhdl_snippets_dir, vhdl_snippet)
-            url = f"{base}/vhdl/{module_name}/src/{vhdl_snippet}"
-            if xml_url.scheme:
-                download_file_from_url(url, filename)
-            else:
-                shutil.copyfile(url, filename)
+            snippet_uri = urllib.parse.urljoin(xml_uri, f"../vhdl/{module_name}/src/{vhdl_snippet}")
+            download_file_from_url(snippet_uri, filename)
 
         replace_vhdl_templates(vhdl_snippets_dir, ipbb_src_fw_dir, ipbb_dest_fw_dir)
 
@@ -296,8 +287,8 @@ def main() -> None:
 
     config.add_section("menu")
     config.set("menu", "build", utils.build_t(args.build))
-    config.set("menu", "name", menuname)
-    config.set("menu", "location", menu_url)
+    config.set("menu", "name", menu_name)
+    config.set("menu", "location", xml_uri)
     config.set("menu", "modules", modules)
 
     config.add_section("ipbb")
