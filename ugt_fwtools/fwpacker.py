@@ -40,7 +40,7 @@ def main():
     location = config.get("menu", "location")
     build = utils.build_t(config.get("menu", "build"))  # format "ffff"
     board = config.get("device", "alias")
-    buildarea = config.get("firmware", "buildarea")
+    buildarea = os.path.dirname(args.filename)  # relative to build config
     menu_modules = int(config.get("menu", "modules"))
     timestamp = utils.timestamp()
 

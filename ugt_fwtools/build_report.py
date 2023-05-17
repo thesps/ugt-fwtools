@@ -66,20 +66,20 @@ def detect_gt_versions(filename):
     return versions
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", help="build config file (*.cfg)")
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     config = configparser.ConfigParser()
     config.read(args.filename)
 
-    menu_dir = config.get("menu", "location")
-    buildarea_dir = config.get("firmware", "buildarea")
+    menu_location = config.get("menu", "location")
+    buildarea = os.path.dirname(args.filename)  # relative to build config
 
     menu_name = config.get("menu", "name")
 
@@ -87,32 +87,31 @@ def main():
     n_modules = config.get("menu", "modules")
     username = config.get("environment", "username")
     hostname = config.get("environment", "hostname")
-    build_raw = config.get("menu", "build")
-    build_id = "0x{0}".format(build_raw)
+    timestamp = config.get("environment", "timestamp")
     mp7fw_tag = config.get("firmware", "mp7tag")
     ugt_tag = config.get("firmware", "ugttag")
-    l1menu_html = menu_name + ".html"
+    l1menu_html = f"{menu_name}.html"
 
     versions = {}
-    ugt_constants_path = os.path.join(buildarea_dir, "src", "module_0", "vhdl_snippets", "ugt_constants.vhd")
+    ugt_constants_path = os.path.join(buildarea, "src", "module_0", "vhdl_snippets", "ugt_constants.vhd")
     needle = "-- tmEventSetup version"
     versions["tm-eventsetup"] = detect_versions_vx_y_z(ugt_constants_path, needle)
     needle = "-- vhdl producer version"
     versions["tm-vhdlproducer"] = detect_versions_vx_y_z(ugt_constants_path, needle)
-    versions["tm-reporter"] = detect_tm_reporter_version(os.path.join(buildarea_dir, "src", l1menu_html))
-    versions.update(detect_gt_versions(os.path.join(buildarea_dir, "src", "mp7_ugt_legacy", "firmware", "hdl", "packages", "gt_mp7_core_pkg.vhd")))
+    versions["tm-reporter"] = detect_tm_reporter_version(os.path.join(buildarea, "src", l1menu_html))
+    versions.update(detect_gt_versions(os.path.join(buildarea, "src", "mp7_ugt_legacy", "firmware", "hdl", "packages", "gt_mp7_core_pkg.vhd")))
     vivado_version = config.get("vivado", "version")
 
     table = [
         ("Menu", menu_name),
         ("Build", build_id),
         ("Modules", n_modules),
-        ("Created", config.get("environment", "timestamp")),
+        ("Created", timestamp),
         ("Username", username),
         ("Hostname", hostname),
         ("Vivado", vivado_version),
-        ("Build area", buildarea_dir),
-        ("Menu url", menu_dir),
+        ("Build area", buildarea),
+        ("Menu url", menu_location),
         ("MP7 tag", mp7fw_tag),
         ("uGT tag", ugt_tag),
         ("uGT", versions["GT"]),
@@ -129,7 +128,7 @@ def main():
     for row in table:
         print(("|_<.{0} |{1} |".format(*row)))
 
-    row = [
+    items = [
         menu_name,
         textile_pre_inline(build_id),
         username,
@@ -146,7 +145,7 @@ def main():
     ]
     print("\nPrepend BITFILES table:\n")
     print("|_.Menu tag |_.Build |_.Creator |_.Vivado |_.MP7 tag |_.uGT tag |_.uGT |_.Frame |_.GTL |_.FDL |_.Issue |_.Remarks |_.Date |")
-    print(("|{0} |".format(" |".join(row))))
+    print(("|{0} |".format(" |".join(items))))
 
 
 if __name__ == "__main__":

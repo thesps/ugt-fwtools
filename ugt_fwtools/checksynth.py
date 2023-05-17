@@ -302,7 +302,7 @@ def main() -> None:
     fw_type = config.get("firmware", "type")
     device_name = config.get("device", "name")
     menu_build = config.get("menu", "build")
-    build_path = config.get("firmware", "buildarea")
+    buildarea = os.path.dirname(args.config)  # relative to build config
 
     # Select only a single module
     if args.m is not None:
@@ -322,7 +322,7 @@ def main() -> None:
     # Check modules
     for index in check_modules:
         # IPBB "proj" directory
-        project_path = os.path.join(build_path, "proj", f"module_{index}")
+        project_path = os.path.join(buildarea, "proj", f"module_{index}")
         analyzer.find_errors(project_path, index)
 
     analyzer.dump_utilization_report()

@@ -18,8 +18,8 @@ def main():
 
     config = configparser.ConfigParser()
     config.read(args.filename)
-    menu_build = config["menu"]["build"]
-    menu_modules = int(config["menu"]["modules"])
+    menu_build = config.get("menu", "build")
+    menu_modules = int(config.get("menu", "modules"))
     buildarea = os.path.dirname(args.filename)  # relative to build config
 
     if args.m is not None:
