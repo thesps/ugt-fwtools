@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import shutil
+import tempfile
 
 DefaultQuestaSimPath = "/opt/mentor/questasim"
 DefaultQuestaSimLibsPath = "questasimlibs"
@@ -26,41 +27,42 @@ def run_compile_simlib(vivado, questasim, questasimlib_path):
     settings64 = os.path.join(vivado_base_dir, vivado, "settings64.sh")
 
     # Simulation directory
-    sim_dir = os.path.join(pwd_script, "..", "firmware", "sim")
-    # Installation path of questasim (tcl syntax)
-    questasim_path = "{" + questasim + "/bin}"
-    # Variable for compile_simlib syntax
-    questasimlib_path_tcl = "{" + f"{questasimlib_path}" + "}"
-    # Path and compile_simlib command of tcl file used in Vivado
-    tcl_file = os.path.join(sim_dir, "scripts", "compile_simlib.tcl")
-    tcl_compile_cmd = "compile_simlib -simulator questa -simulator_exec_path {questasim_path} -family virtex7 -language vhdl -library all -dir {questasimlib_path_tcl}".format(**locals())
+    temp_dir = tempfile.mkdtemp()
 
-    # Writing commands to tcl file
-    with open(tcl_file, "wt") as fp:
-        fp.write("#!/usr/bin/tcls\n")
-        fp.write(f"{tcl_compile_cmd}\n")
-        fp.write("exit\n")
+    try:
+        # Installation path of questasim (tcl syntax)
+        questasim_path = "{" + questasim + "/bin}"
+        # Variable for compile_simlib syntax
+        questasimlib_path_tcl = "{" + f"{questasimlib_path}" + "}"
+        # Path and compile_simlib command of tcl file used in Vivado
+        tcl_file = os.path.join(temp_dir, "compile_simlib.tcl")
+        tcl_compile_cmd = "compile_simlib -simulator questa -simulator_exec_path {questasim_path} -family virtex7 -language vhdl -library all -dir {questasimlib_path_tcl}".format(**locals())
 
-    # Checking if questasimlib_path exists
-    if not os.path.isdir(questasimlib_path):
-        logging.info("===========================================================================")
-        # Remove modelsim.ini before creating sim libs to get correct modelsim.ini in $HOME/questasimlibs_<version>
-        utils.remove(os.path.join(pwd, "modelsim.ini"))
-        source_tcl = os.path.join(pwd_script, "..", "firmware", "sim", "scripts", "compile_simlib.tcl")
-        command = f'bash -c "source {settings64}; vivado -mode batch -source {source_tcl}"'
-        logging.info("Creating Questa sim libs in %s (running %r)", questasimlib_path, source_tcl)
-        run_command(command)
-        utils.remove(os.path.join(pwd, "modelsim.ini"))
-        logging.info("Done!")
-        logging.info("===========================================================================")
-    else:
-        logging.info("===========================================================================")
-        logging.info("Questa sim libs in %s already exists", questasimlib_path)
-        logging.info("Nothing to do!")
-        logging.info("===========================================================================")
+        # Writing commands to tcl file
+        with open(tcl_file, "wt") as fp:
+            fp.write("#!/usr/bin/tcls\n")
+            fp.write(f"{tcl_compile_cmd}\n")
+            fp.write("exit\n")
 
-    # Copy modelsim.ini from questasimlib dir to sim dir (to get questasim libs corresponding to Vivado version)
-    shutil.copyfile(os.path.join(questasimlib_path, "modelsim.ini"), os.path.join(sim_dir, "modelsim.ini"))
+        # Checking if questasimlib_path exists
+        if not os.path.isdir(questasimlib_path):
+            logging.info("===========================================================================")
+            # Remove modelsim.ini before creating sim libs to get correct modelsim.ini in $HOME/questasimlibs_<version>
+            utils.remove(os.path.join(pwd, "modelsim.ini"))
+            source_tcl = os.path.join(pwd_script, "..", "firmware", "sim", "scripts", "compile_simlib.tcl")
+            command = f'bash -c "source {settings64}; vivado -mode batch -source {source_tcl}"'
+            logging.info("Creating Questa sim libs in %s (running %r)", questasimlib_path, source_tcl)
+            run_command(command)
+            utils.remove(os.path.join(pwd, "modelsim.ini"))
+            logging.info("Done!")
+            logging.info("===========================================================================")
+        else:
+            logging.info("===========================================================================")
+            logging.info("Questa sim libs in %s already exists", questasimlib_path)
+            logging.info("Nothing to do!")
+            logging.info("===========================================================================")
+    finally:
+        shutil.rmtree(temp_dir)
 
 
 def parse_args():
