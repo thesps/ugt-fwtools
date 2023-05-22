@@ -11,6 +11,7 @@ import urllib.error
 from typing import Dict, List
 
 from . import utils
+from .xmlmenu import XmlMenu
 
 BoardAliases: Dict[str, str] = {
     "mp7xe_690": "xe",
@@ -40,7 +41,7 @@ DefaultGitlabUrlIPB: str = "https://github.com/ipbus/ipbus-firmware.git"
 DefaultIpbFwTag: str = "v1.4"
 """Default tag IPB FW repo."""
 
-DefaultGitlabUrlMP7: str = "https://gitlab.cern.ch/arnold/mp7.git"
+DefaultMP7Url: str = "https://gitlab.cern.ch/arnold/mp7.git"
 """Default URL MP7 FW repo."""
 
 DefaultMP7Tag: str = "v3.2.2_Vivado2021+_ugt"
@@ -122,7 +123,7 @@ def parse_args():
     parser.add_argument("--vivado", metavar="<version>", default=DefaultVivadoVersion, type=utils.vivado_t, help=f"Vivado version to run (default is {DefaultVivadoVersion!r})")
     parser.add_argument("--ipburl", metavar="<path>", default=DefaultGitlabUrlIPB, help=f"URL of IPB firmware repo (default is {DefaultGitlabUrlIPB!r})")
     parser.add_argument("-i", "--ipb", metavar="<tag>", default=DefaultIpbFwTag, help=f"IPBus firmware repo: tag or branch name (default is {DefaultIpbFwTag!r})")
-    parser.add_argument("--mp7url", metavar="<path>", default=DefaultGitlabUrlMP7, help=f"URL of MP7 firmware repo (default is {DefaultGitlabUrlMP7!r})")
+    parser.add_argument("--mp7url", metavar="<path>", default=DefaultMP7Url, help=f"URL of MP7 firmware repo (default is {DefaultMP7Url!r})")
     parser.add_argument("--mp7tag", metavar="<path>", default=DefaultMP7Tag, help=f"MP7 firmware repo: tag name (default is {DefaultMP7Tag!r})")
     parser.add_argument("--ugturl", metavar="<path>", required=True, help="URL of ugt firmware repo [required]")
     parser.add_argument("--ugt", metavar="<path>", required=True, help="ugt firmware repo: tag or branch name [required]")
@@ -201,16 +202,16 @@ def main() -> None:
     logging.info("retrieve %r...", html_filename)
     download_file_from_url(html_uri, html_filename)
 
-    menu = utils.parse_xml(xml_filename)
+    menu = XmlMenu(xml_filename)
 
     # Fetch menu name from path.
-    menu_name = menu["name"]
+    menu_name = menu.name
 
     if not menu_name.startswith("L1Menu_"):
         raise RuntimeError(f"Invamenu_nameme: {menu_name!r}")
 
     # Fetch number of menu modules.
-    modules = menu["n_modules"]
+    modules = menu.n_modules
 
     if not modules:
         raise RuntimeError("Menu contains no modules")

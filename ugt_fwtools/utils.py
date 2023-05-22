@@ -7,7 +7,6 @@ import socket
 import subprocess
 import os
 import re
-from xml.etree import ElementTree as ET
 from typing import Dict
 
 
@@ -132,21 +131,6 @@ def username():
     """Returns UNIX login name."""
     login = 0
     return pwd.getpwuid(os.getuid())[login]
-
-def parse_xml(filename: str) -> Dict:
-    tree = ET.parse(filename)
-    root = tree.getroot()
-
-    def get_text(name):
-        node = root.find(name)
-        return "" if node is None else node.text
-
-    data: Dict = {}
-    data["name"] = get_text('./name')
-    data["uuid_menu"] = get_text('./uuid_menu')
-    data["uuid_firmware"] = get_text('./uuid_firmware')
-    data["n_modules"] = int(get_text('./n_modules'))
-    return data
 
 
 def vivado_batch(source: str) -> None:
