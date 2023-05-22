@@ -7,12 +7,14 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 import urllib.parse
 import urllib.error
 
 from threading import Thread
+from typing import List
 
 from . import utils
 from .xmlmenu import XmlMenu
@@ -52,7 +54,7 @@ DefaultIpbFwTag = "v1.4"
 DefaultMP7Url = "https://gitlab.cern.ch/arnold/mp7"
 """Default URL MP7 FW repo."""
 
-DefaultMP7Tag = "v3.2.2_Vivado2021.2_ugt"
+DefaultMP7Tag = "v3.2.2_Vivado2021+_ugt"
 """Default tag MP7 FW repo."""
 
 vhdl_snippets_names = [
@@ -71,12 +73,6 @@ INI_FILE = "modelsim.ini"
 DO_FILE_TPL = os.path.join("scripts", "templates", "gtl_fdl_wrapper_tpl_questa.do")
 
 max_algorithms: int = 512  # numbers of bits
-
-
-def run_command(*args):
-    command = " ".join(args)
-    logging.info(">$ %s", command)
-    os.system(command)
 
 
 def render_template(src, dst, args):
@@ -132,10 +128,11 @@ def run_vsim(vsim, module, msgmode, ini_file):
         cmd = [vsim_bin, "-c", "-msgmode", msgmode, "-modelsimini", ini_file, "-do", "do {filename}; quit -f".format(filename=os.path.join(module.path, DO_FILE))]
         logging.info("starting simulation for module_%d...", module.id)
         logging.info("executing: %s", " ".join(['"{0}"'.format(arg) if " " in str(arg) else str(arg) for arg in cmd]))
-        subprocess.check_call(cmd, stdout=logfile)
+        subprocess.run(cmd, stdout=logfile).check_returncode()
+        logging.info("simulation done.")
     # checks for the json file
     while not os.path.exists(module.results_json):
-        pass
+        pass  # TODO!!!
     # writes to results.txt what bx number triggert which algorithm and how often
     with open(module.results_txt, "wt") as results_txt:
         jsonf = json.load(open(module.results_json))
@@ -291,7 +288,7 @@ def download_file_from_url(url, filename):
     urllib.request.urlretrieve(url, filename)
 
 
-def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu, a_ipb_fw_dir, a_questasimlibs, a_output, a_view_wave, a_wlf, a_verbose, a_tv, a_ignored):
+def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu, a_ipb_fw_url, a_ipb_fw_tag, a_questasimlibs, a_output, a_view_wave, a_wlf, a_verbose, a_tv, a_ignored):
 
     sim_dir = os.path.join(project_dir, "firmware", "sim")
 
@@ -309,29 +306,15 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
     # tran => output to console.
     msgmode = "wlf" if a_wlf else "tran"
 
-    temp_dir = os.path.join(sim_dir, "temp_dir")
-    # Remove existing "temp_dir"
-    if os.path.exists(temp_dir):
-        shutil.rmtree(temp_dir)
-    os.makedirs(temp_dir)  # makes folders
+    # create temporary directory
+    temp_dir = tempfile.mkdtemp()
 
     logging.info("===========================================================================")
-    logging.info("clone repos of MP7 and IPB-firmware to temp_dir ...")
-
-    gitlab_user = os.getenv("UGT_GITLAB_USER_NAME")
-    if not gitlab_user:
-        raise RuntimeError("\033[1;31m UGT_GITLAB_USER_NAME is not defined. \033[0m")
-
-    gitlab_mp7_url = a_mp7_url.split("//")[1]
+    logging.info("clone repos of MP7 and IPB-firmware to %r ...", temp_dir)
 
     # clone repos of MP7 and IPB-firmware to temp_dir
-    command = f'bash -c "cd {temp_dir}; git clone https://{gitlab_user}@{gitlab_mp7_url}.git mp7; cd {temp_dir}/mp7; git checkout {a_mp7_tag}; cd {temp_dir}; git clone {a_ipb_fw_dir}.git ipbus-firmware"'
-    run_command(command)
-
-    if not os.path.exists(os.path.join(temp_dir, "mp7")):
-        raise RuntimeError("\033[1;31m mp7 not in temp_dir. \033[0m")
-    if not os.path.exists(os.path.join(temp_dir, "ipbus-firmware")):
-        raise RuntimeError("\033[1;31m ipbus-firmware not in temp_dir. \033[0m")
+    subprocess.run(["git", "clone", a_mp7_url, "-b", a_mp7_tag, "mp7"], cwd=temp_dir).check_returncode()
+    subprocess.run(["git", "clone", a_ipb_fw_url, "-b", a_ipb_fw_tag, "ipbus-firmware"], cwd=temp_dir).check_returncode()
 
     logging.info("===========================================================================")
     logging.info("download XML and testvector file from L1Menu repository ...")
@@ -442,14 +425,14 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
     algos_tv = {}
     error_jsonf = {}
     for i in range(menu.n_modules):
-        error_jsonf[i] = False
+        error_jsonf[i] = {}
 
     for module in modules:  # steps through all modules and makes a list with trigger count and module
         jsonf = json.load(open(module.results_json))
         errors_jsonf = jsonf["errors"]
         for err in errors_jsonf:
             if err != "":
-                error_jsonf[module.id] = True
+                error_jsonf[module.id].update(jsonf)
         counts = jsonf["counts"]
         for count in counts:
             index = count["algo_index"]
@@ -489,10 +472,12 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
     algorithms = sorted(menu.algorithms, key=lambda algorithm: algorithm.index)  # sorts all algorithms by index number
     success = True
     err_cnt = 0
+    ignored_algos = []
     for algo in algorithms:
         result = ok_green
         if algo.name in IGNORED_ALGOS and a_ignored:
             result = ignore_yellow
+            ignored_algos.append(algo.index)
         # checks if algorithm trigger count is equal in both hardware and testvectors
         elif algos_tv[algo.index][0][1] != algos_sim[algo.index][0][1]:
             err_cnt=err_cnt+1
@@ -511,14 +496,18 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
     sum_log.info("|-----|-----|------------------------------------------------------------------|--------|--------|--------|")
 
     json_err_msg = True
-    for i in range(len(error_jsonf)):
-        if error_jsonf[i]:
-            if json_err_msg:
-                sum_log.info("\033[1;31m ERROR: mismatches of algos or finor @ certain bx-nr in: \033[0m ".format(i))
+    for i, jsonf in error_jsonf.items():
+        if jsonf:
+            error_count = 0
+            for entry in jsonf.get("counts", []):
+                if entry["algo_index"] not in ignored_algos:
+                    if entry["algo_tv"] != entry["algo_sim"]:
+                        error_count += 1
+            if error_count:
+                sum_log.info(f"\033[1;31m ERROR: {error_count} mismatches of algos or finor @ certain bx-nr in: \033[0m ")
+                json_file = os.path.join(base_dir, "module_{}", "results_module_{}.json").format(i, i)
+                sum_log.info("\033[1;31m {} \033[0m ".format(json_file))
                 json_err_msg = False
-            json_file = os.path.join(base_dir, "module_{}", "results_module_{}.json").format(i, i)
-            sum_log.info("\033[1;31m {} \033[0m ".format(json_file))
-
     trigger_liste = trigger_list(testvector_filepath)  # gets a list: index is algorithm index and content is the trigger count in the testvector file
 
     # prints bits which are present in the testvector but have no corresponding algo in the menu
@@ -563,9 +552,9 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
         logging.error(success_green)
 
     logging.info("===========================================================================")
-    logging.info("removed temporary directory ('temp_dir') ...")
-    if os.path.exists(os.path.join(sim_dir, "temp_dir")):
-        shutil.rmtree(os.path.join(sim_dir, "temp_dir"))
+    logging.info("removed temporary directory %r ...", temp_dir)
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
 
     # remove 'anomaly_detection.txt'
     cfg_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "firmware", "cfg")
@@ -590,7 +579,7 @@ def parse_args():
     parser.add_argument("--mp7_url", default=DefaultMP7Url, help="MP7 repo (default is {!r})".format(DefaultMP7Url))
     parser.add_argument("--mp7_repo_tag", default=DefaultMP7Tag, help="MP7 repo tag (default is {!r})".format(DefaultMP7Tag))
     parser.add_argument("--ipb_fw_url", default=DefaultGitlabUrlIPB, help="IPBus firmware repo (default is {!r})".format(DefaultGitlabUrlIPB))
-    parser.add_argument("--ipb_fw_repo_tag", default=DefaultIpbFwTag, help="IPBus firmware repo tag (default is {!r})".format(DefaultIpbFwTag))
+    parser.add_argument("--ipb_fw_tag", default=DefaultIpbFwTag, help="IPBus firmware repo tag (default is {!r})".format(DefaultIpbFwTag))
     parser.add_argument("--questasimlibs", default=DefaultQuestaSimLibsPath, help="Questasim Vivado libraries directory name (default is {!r})".format(DefaultQuestaSimLibsPath))
     parser.add_argument("--output", metavar="path", type=os.path.abspath, help="path to output directory")
     parser.add_argument("--view_wave", action="store_true", help="shows the waveform")
@@ -618,6 +607,7 @@ def main():
         menu,
         menu_url,
         args.ipb_fw_url,
+        args.ipb_fw_tag,
         args.questasimlibs,
         args.output,
         args.view_wave,
