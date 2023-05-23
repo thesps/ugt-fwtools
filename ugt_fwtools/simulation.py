@@ -24,6 +24,8 @@ IGNORED_ALGOS = [
     "L1_SecondBunchInTrain"
 ]
 
+TIMEOUT_SEC: float = 60.0
+
 # terminal size
 with os.popen("stty size") as fp:
     ts = int(fp.read().split()[1])
@@ -129,10 +131,16 @@ def run_vsim(vsim, module, msgmode, ini_file):
         logging.info("starting simulation for module_%d...", module.id)
         logging.info("executing: %s", " ".join(['"{0}"'.format(arg) if " " in str(arg) else str(arg) for arg in cmd]))
         subprocess.run(cmd, stdout=logfile).check_returncode()
-        logging.info("simulation done.")
+        logging.info(f"simulation done.")
+
     # checks for the json file
+    t0 = time.monotonic()
     while not os.path.exists(module.results_json):
-        pass  # TODO!!!
+        dt = time.monotonic() - t0
+        if dt > TIMEOUT_SEC:
+            raise RuntimeError(f"Timeout waiting for creation of file: {module.results_json!r}")
+        time.sleep(0.100)
+
     # writes to results.txt what bx number triggert which algorithm and how often
     with open(module.results_txt, "wt") as results_txt:
         jsonf = json.load(open(module.results_json))
@@ -261,20 +269,19 @@ class Module(object):
 
         # Create 'anomaly_detection.txt' from 'anomaly_detection.dep'
         adt_dep_file = os.path.join(uGTalgosPath, "cfg", "anomaly_detection.dep")
-        adt_repl = os.path.join(uGTalgosPath, "cfg", "anomaly_detection.txt")
+        adt_vhd = ""
 
-        with open(adt_dep_file) as fp:
-            adt_vhd = fp.read()
-        adt_vhd = adt_vhd.replace("src ", "vcom -93 -work work $HDL_DIR/")
-        with open(adt_repl, "wt") as fp:
-            fp.write(adt_vhd)
+        if os.path.exists(adt_dep_file):
+            with open(adt_dep_file, "rt") as fp:
+                adt_vhd = fp.read()
+            adt_vhd = adt_vhd.replace("src ", "vcom -93 -work work $HDL_DIR/")
 
         # Insert content of 'anomaly_detection.txt' into DO_FILE
         render_template(
             os.path.join(self.path, DO_FILE_TMP),
             os.path.join(self.path, DO_FILE),
             {
-                "{{adt_vhd}}": utils.read_file(os.path.join(uGTalgosPath, "cfg", "anomaly_detection.txt")),
+                "{{adt_vhd}}": adt_vhd,
             }
         )
 
@@ -288,7 +295,7 @@ def download_file_from_url(url, filename):
     urllib.request.urlretrieve(url, filename)
 
 
-def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu, a_ipb_fw_url, a_ipb_fw_tag, a_questasimlibs, a_output, a_view_wave, a_wlf, a_verbose, a_tv, a_ignored):
+def run_simulation_questa(sim_area, project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu, a_ipb_fw_url, a_ipb_fw_tag, a_questasimlibs, a_output, a_view_wave, a_wlf, a_verbose, a_tv, a_ignored):
 
     sim_dir = os.path.join(project_dir, "firmware", "sim")
 
@@ -306,21 +313,18 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
     # tran => output to console.
     msgmode = "wlf" if a_wlf else "tran"
 
-    # create temporary directory
-    temp_dir = tempfile.mkdtemp()
-
     logging.info("===========================================================================")
-    logging.info("clone repos of MP7 and IPB-firmware to %r ...", temp_dir)
+    logging.info("clone repos of MP7 and IPB-firmware to %r ...", sim_area)
 
-    # clone repos of MP7 and IPB-firmware to temp_dir
-    subprocess.run(["git", "clone", a_mp7_url, "-b", a_mp7_tag, "mp7"], cwd=temp_dir).check_returncode()
-    subprocess.run(["git", "clone", a_ipb_fw_url, "-b", a_ipb_fw_tag, "ipbus-firmware"], cwd=temp_dir).check_returncode()
+    # clone repos of MP7 and IPB-firmware to sim_area
+    subprocess.run(["git", "clone", a_mp7_url, "-b", a_mp7_tag, "mp7"], cwd=sim_area).check_returncode()
+    subprocess.run(["git", "clone", a_ipb_fw_url, "-b", a_ipb_fw_tag, "ipbus-firmware"], cwd=sim_area).check_returncode()
 
     logging.info("===========================================================================")
     logging.info("download XML and testvector file from L1Menu repository ...")
     # Get l1menus_path for URL
     xml_name = "{}{}".format(a_menu, ".xml")
-    menu_filepath = os.path.join(temp_dir, xml_name)
+    menu_filepath = os.path.join(sim_area, xml_name)
     url = os.path.join(a_url_menu, "xml", xml_name)
 
     url_menu_split_0 = a_url_menu.split("/")[0]
@@ -336,7 +340,7 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
     if not tv_name.split(".")[1]:
         tv_name = "{}{}".format(tv_name, ".txt")
 
-    testvector_filepath = os.path.join(temp_dir, tv_name)
+    testvector_filepath = os.path.join(sim_area, tv_name)
     #shutil.copyfile(a_tv, testvector_filepath)
 
     tv_split_0 = a_tv.split("/")[0]
@@ -358,7 +362,7 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
     # Get VHDL snippets from menu URL
     for module in modules:
         vhdl_src_path = os.path.join("vhdl", f"module_{module.id:d}", "src")
-        temp_dir_module = os.path.join(temp_dir, vhdl_src_path)
+        temp_dir_module = os.path.join(sim_area, vhdl_src_path)
         if not os.path.exists(temp_dir_module):
             os.makedirs(temp_dir_module)  # makes folders
             for vhdl_name in vhdl_snippets_names:
@@ -396,10 +400,10 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
 
         logging.debug("Module_%d created at %s", module.id, base_dir)
 
-        mp7 = os.path.join(temp_dir, "mp7")
-        ipb_fw = os.path.join(temp_dir, "ipbus-firmware")
+        mp7 = os.path.join(sim_area, "mp7")
+        ipb_fw = os.path.join(sim_area, "ipbus-firmware")
 
-        module.make_files(sim_dir, a_view_wave, mp7, temp_dir, ipb_fw)  # sim_dir, view_wave, mp7_tag, temp_dir
+        module.make_files(sim_dir, a_view_wave, mp7, sim_area, ipb_fw)  # sim_dir, view_wave, mp7_tag, temp_dir
 
     questasim_path = os.path.join(QuestaSimPath, "questasim")
 
@@ -412,9 +416,14 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
         thread = Thread(target=run_vsim, args=(questasim_path, module, msgmode, ini_file))
         threads.append(thread)
         thread.start()
-        while not os.path.exists(os.path.join(module.path, "running.lock")):  # stops starting of new threads if .do file is still in use
-            time.sleep(0.5)
-        os.remove(os.path.join(module.path, "running.lock"))
+        lock_file = os.path.join(module.path, "running.lock")
+        t0 = time.monotonic()
+        while not os.path.exists(lock_file):  # stops starting of new threads if .do file is still in use
+            dt = time.monotonic() - t0
+            if dt > TIMEOUT_SEC:
+                raise RuntimeError(f"Timeout waiting for creation of file: {lock_file!r}")
+            time.sleep(0.100)
+        os.remove(lock_file)
 
     for thread in threads:  # waits for all threads to finish
         thread.join()
@@ -552,9 +561,6 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
         logging.error(success_green)
 
     logging.info("===========================================================================")
-    logging.info("removed temporary directory %r ...", temp_dir)
-    if os.path.exists(temp_dir):
-        shutil.rmtree(temp_dir)
 
     # remove 'anomaly_detection.txt'
     cfg_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "firmware", "cfg")
@@ -573,9 +579,11 @@ def run_simulation_questa(project_dir, a_mp7_url, a_mp7_tag, a_menu, a_url_menu,
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("menu_xml", help="path to menu xml file (in repository or local")
-    parser.add_argument("--project", default=os.getcwd())
+    parser.add_argument("--project")
     parser.add_argument("--tv", required=True, help="Test vector path")
     parser.add_argument("--ignored", action="store_true", default=False, help="using IGNORED_ALGOS for error checks")
+    parser.add_argument("--ugturl")
+    parser.add_argument("--ugttag")
     parser.add_argument("--mp7_url", default=DefaultMP7Url, help="MP7 repo (default is {!r})".format(DefaultMP7Url))
     parser.add_argument("--mp7_repo_tag", default=DefaultMP7Tag, help="MP7 repo tag (default is {!r})".format(DefaultMP7Tag))
     parser.add_argument("--ipb_fw_url", default=DefaultGitlabUrlIPB, help="IPBus firmware repo (default is {!r})".format(DefaultGitlabUrlIPB))
@@ -600,7 +608,24 @@ def main():
     utils.menuname_t(menu)
     menu_url = "/".join(args.menu_xml.split("/")[:-2])
 
-    run_simulation_questa(
+    if args.ugturl and not args.ugttag:
+        raise RuntimeError("Using --ugturl requires also --ugttag")
+    if args.ugturl and args.project:
+        raise RuntimeError("Options --project and --ugturl are mutual exclusive")
+    if not args.ugturl and not args.project:
+        args.project = os.getcwd()
+
+    sim_area = tempfile.mkdtemp()
+
+    try:
+      # Use non local project path
+      if args.ugturl:
+          subprocess.run(["git", "clone", args.ugturl, "-b", args.ugttag], cwd=sim_area).check_returncode()
+          project_name = os.path.splitext(os.path.basename(args.ugturl))[0]
+          args.project = os.path.join(sim_area, project_name)
+
+      run_simulation_questa(
+        sim_area,
         args.project,
         args.mp7_url,
         args.mp7_repo_tag,
@@ -615,8 +640,9 @@ def main():
         args.verbose,
         args.tv,
         args.ignored,
-    )
-
+      )
+    finally:
+        shutil.rmtree(sim_area)
 
 if __name__ == "__main__":
     main()
