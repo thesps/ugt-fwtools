@@ -47,17 +47,23 @@ DefaultQuestaSimLibsPath = os.getenv("UGT_QUESTASIM_LIBS_PATH")
 if not DefaultQuestaSimLibsPath:
     raise RuntimeError("UGT_QUESTASIM_LIBS_PATH is not defined.")
 
-DefaultGitlabUrlIPB = "https://github.com/ipbus/ipbus-firmware"
+DefaultGitlabUrlIPB: str = "https://github.com/ipbus/ipbus-firmware"
 """Default URL IPB FW repo."""
 
-DefaultIpbFwTag = "v1.4"
+DefaultIpbFwTag: str = "v1.4"
 """Default tag IPB FW repo."""
 
-DefaultMP7Url = "https://gitlab.cern.ch/arnold/mp7"
+DefaultMP7Url: str = "https://gitlab.cern.ch/arnold/mp7"
 """Default URL MP7 FW repo."""
 
-DefaultMP7Tag = "v3.2.2_Vivado2021+_ugt"
+DefaultMP7Tag: str = "v3.2.2_Vivado2021+_ugt"
 """Default tag MP7 FW repo."""
+
+DefaultUgtUrl: str = "https://github.com/cms-l1-globaltrigger/mp7_ugt_legacy.git"
+"""Default URL for ugt FW repo."""
+
+DefaultUgtTag: str = "v1.22.3"
+"""Default tag for ugt FW repo."""
 
 vhdl_snippets_names = [
     "algo_index.vhd",
@@ -582,8 +588,8 @@ def parse_args():
     parser.add_argument("--project")
     parser.add_argument("--tv", required=True, help="Test vector path")
     parser.add_argument("--ignored", action="store_true", default=False, help="using IGNORED_ALGOS for error checks")
-    parser.add_argument("--ugturl")
-    parser.add_argument("--ugttag")
+    parser.add_argument("--ugturl", default=DefaultUgtUrl)
+    parser.add_argument("--ugttag", default=DefaultUgtTag)
     parser.add_argument("--mp7_url", default=DefaultMP7Url, help="MP7 repo (default is {!r})".format(DefaultMP7Url))
     parser.add_argument("--mp7_repo_tag", default=DefaultMP7Tag, help="MP7 repo tag (default is {!r})".format(DefaultMP7Tag))
     parser.add_argument("--ipb_fw_url", default=DefaultGitlabUrlIPB, help="IPBus firmware repo (default is {!r})".format(DefaultGitlabUrlIPB))

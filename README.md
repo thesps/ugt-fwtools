@@ -5,14 +5,24 @@ Firmware build tools for Phase-1 uGT
 ## Install
 
 ```bash
-pip install git+https://github.com/cms-l1-globaltrigger/ugt-fwtools.git@0.1.0
+pip install git+https://github.com/cms-l1-globaltrigger/ugt-fwtools.git@main
 ```
 
 ## Synthesis
 
 ```bash
-ugt-runsynth sample.xml --build 0x1160
+ugt-simulate sample.xml --tv sample_ttbar.txt
 ```
+
+Use command line option `--ugttag <tag>` to run with a different ugt tag or branch.
+
+## Synthesis
+
+```bash
+ugt-synthesize sample.xml --build 0x1160
+```
+
+Use command line option `--ugttag <tag>` to run with a different ugt tag or branch.
 
 ## Check results
 

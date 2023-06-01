@@ -47,6 +47,12 @@ DefaultMP7Url: str = "https://gitlab.cern.ch/arnold/mp7.git"
 DefaultMP7Tag: str = "v3.2.2_Vivado2021+_ugt"
 """Default tag MP7 FW repo."""
 
+DefaultUgtUrl: str = "https://github.com/cms-l1-globaltrigger/mp7_ugt_legacy.git"
+"""Default URL for ugt FW repo."""
+
+DefaultUgtTag: str = "v1.22.3"
+"""Default tag for ugt FW repo."""
+
 vhdl_snippets: List[str] = [
     "algo_index.vhd",
     "gtl_module_instances.vhd",
@@ -124,9 +130,9 @@ def parse_args():
     parser.add_argument("--ipburl", metavar="<path>", default=DefaultGitlabUrlIPB, help=f"URL of IPB firmware repo (default is {DefaultGitlabUrlIPB!r})")
     parser.add_argument("-i", "--ipb", metavar="<tag>", default=DefaultIpbFwTag, help=f"IPBus firmware repo: tag or branch name (default is {DefaultIpbFwTag!r})")
     parser.add_argument("--mp7url", metavar="<path>", default=DefaultMP7Url, help=f"URL of MP7 firmware repo (default is {DefaultMP7Url!r})")
-    parser.add_argument("--mp7tag", metavar="<path>", default=DefaultMP7Tag, help=f"MP7 firmware repo: tag name (default is {DefaultMP7Tag!r})")
-    parser.add_argument("--ugturl", metavar="<path>", required=True, help="URL of ugt firmware repo [required]")
-    parser.add_argument("--ugt", metavar="<path>", required=True, help="ugt firmware repo: tag or branch name [required]")
+    parser.add_argument("--mp7tag", metavar="<tag>", default=DefaultMP7Tag, help=f"MP7 firmware repo: tag name (default is {DefaultMP7Tag!r})")
+    parser.add_argument("--ugturl", metavar="<path>", default=DefaultUgtUrl, help=f"URL of ugt firmware repo (default is {DefaultUgtUrl!r})")
+    parser.add_argument("--ugttag", metavar="<tag>", default=DefaultUgtTag, help=f"ugt firmware repo: tag or branch name (default is {DefaultUgtTag!r})")
     parser.add_argument("--build", type=utils.build_str_t, required=True, metavar="<version>", help="menu build version (eg. 0x1001) [required]")
     parser.add_argument("--board", metavar="<type>", default=DefaultBoardType, choices=list(BoardAliases.keys()), help=f"set board type (default is {DefaultBoardType!r})")
     parser.add_argument("-p", "--path", metavar="<path>", default=DefaultFirmwareDir, type=os.path.abspath, help=f"fw build path (default is {DefaultFirmwareDir!r})")
