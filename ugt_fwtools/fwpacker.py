@@ -12,7 +12,7 @@ from . import utils
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("config", help="build configuration file to read")
+    parser.add_argument("filename", help="build configuration file to read")
     parser.add_argument("--outdir", metavar="<path>", type=os.path.abspath, help="set location to write tarball")
     return parser.parse_args()
 
