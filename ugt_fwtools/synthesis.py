@@ -128,7 +128,7 @@ def parse_args():
     parser.add_argument("menu_xml", help="path to menu xml file (in repository or local")
     parser.add_argument("--vivado", metavar="<version>", default=DefaultVivadoVersion, type=utils.vivado_t, help=f"Vivado version to run (default is {DefaultVivadoVersion!r})")
     parser.add_argument("--ipburl", metavar="<path>", default=DefaultGitlabUrlIPB, help=f"URL of IPB firmware repo (default is {DefaultGitlabUrlIPB!r})")
-    parser.add_argument("-i", "--ipb", metavar="<tag>", default=DefaultIpbFwTag, help=f"IPBus firmware repo: tag or branch name (default is {DefaultIpbFwTag!r})")
+    parser.add_argument("-i", "--ipbtag", metavar="<tag>", default=DefaultIpbFwTag, help=f"IPBus firmware repo: tag or branch name (default is {DefaultIpbFwTag!r})")
     parser.add_argument("--mp7url", metavar="<path>", default=DefaultMP7Url, help=f"URL of MP7 firmware repo (default is {DefaultMP7Url!r})")
     parser.add_argument("--mp7tag", metavar="<tag>", default=DefaultMP7Tag, help=f"MP7 firmware repo: tag name (default is {DefaultMP7Tag!r})")
     parser.add_argument("--ugturl", metavar="<path>", default=DefaultUgtUrl, help=f"URL of ugt firmware repo (default is {DefaultUgtUrl!r})")
@@ -177,7 +177,7 @@ def main() -> None:
 
     # TODO
     vivado_version = f"vivado_{args.vivado}"
-    ipbb_dir = os.path.join(args.path, args.build, menu_name, project_type, args.ugt, args.mp7tag, vivado_version)
+    ipbb_dir = os.path.join(args.path, args.build, menu_name, project_type, args.ugttag, args.mp7tag, vivado_version)
     ipbb_dir_build = os.path.join(args.path, args.build)
 
     if os.path.isdir(ipbb_dir_build):
@@ -191,9 +191,9 @@ def main() -> None:
 
     # IPBB commands: creating IPBB area
     subprocess.run(["ipbb", "init", ipbb_dir]).check_returncode()
-    subprocess.run(["ipbb", "add", "git", args.ipburl, "-b", args.ipb], cwd=ipbb_dir).check_returncode()
+    subprocess.run(["ipbb", "add", "git", args.ipburl, "-b", args.ipbtag], cwd=ipbb_dir).check_returncode()
     subprocess.run(["ipbb", "add", "git", args.mp7url, "-b", args.mp7tag], cwd=ipbb_dir).check_returncode()
-    subprocess.run(["ipbb", "add", "git", args.ugturl, "-b", args.ugt], cwd=ipbb_dir).check_returncode()
+    subprocess.run(["ipbb", "add", "git", args.ugturl, "-b", args.ugttag], cwd=ipbb_dir).check_returncode()
 
     xml_filename = os.path.join(ipbb_dir, "src", f"{menu_name}.xml")
 
@@ -306,11 +306,11 @@ def main() -> None:
 
     config.add_section("firmware")
     config.set("firmware", "ipburl", args.ipburl)
-    config.set("firmware", "ipbtag", args.ipb)
+    config.set("firmware", "ipbtag", args.ipbtag)
     config.set("firmware", "mp7url", args.mp7url)
     config.set("firmware", "mp7tag", args.mp7tag)
     config.set("firmware", "ugturl", args.ugturl)
-    config.set("firmware", "ugttag", args.ugt)
+    config.set("firmware", "ugttag", args.ugttag)
     config.set("firmware", "type", project_type)
     config.set("firmware", "buildarea", ipbb_dir)
 
