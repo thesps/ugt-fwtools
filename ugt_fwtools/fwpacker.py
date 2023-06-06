@@ -12,7 +12,7 @@ from . import utils
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("filename", help="build configuration file to read")
+    parser.add_argument("config", help="build configuration file to read")
     parser.add_argument("--outdir", metavar="<path>", type=os.path.abspath, help="set location to write tarball")
     return parser.parse_args()
 
@@ -40,7 +40,7 @@ def main():
     location = config.get("menu", "location")
     build = utils.build_t(config.get("menu", "build"))  # format "ffff"
     board = config.get("device", "alias")
-    buildarea = os.path.dirname(args.filename)  # relative to build config
+    buildarea = os.path.dirname(args.config)  # relative to build config
     menu_modules = int(config.get("menu", "modules"))
     timestamp = utils.timestamp()
 
