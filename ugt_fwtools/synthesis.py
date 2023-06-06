@@ -177,11 +177,10 @@ def main() -> None:
 
     # TODO
     vivado_version = f"vivado_{args.vivado}"
-    ipbb_dir = os.path.join(args.path, args.build, menu_name, project_type, args.ugttag, args.mp7tag, vivado_version)
-    ipbb_dir_build = os.path.join(args.path, args.build)
+    ipbb_dir = os.path.join(args.path, args.build)
 
-    if os.path.isdir(ipbb_dir_build):
-        raise RuntimeError(f"build area already exists: {ipbb_dir_build}")
+    if os.path.isdir(ipbb_dir):
+        raise RuntimeError(f"build area already exists: {ipbb_dir}")
 
     logging.info("===========================================================================")
     logging.info("creating IPBB area ...")
