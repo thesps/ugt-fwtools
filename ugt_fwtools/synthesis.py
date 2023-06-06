@@ -17,11 +17,11 @@ BoardAliases: Dict[str, str] = {
     "mp7xe_690": "xe",
 }
 
-DefaultVivadoVersion = os.getenv("UGT_VIVADO_VERSION")
+DefaultVivadoVersion = os.getenv("UGT_VIVADO_VERSION", "")
 if not DefaultVivadoVersion:
     raise RuntimeError("UGT_VIVADO_VERSION is not defined.")
 
-VivadoBaseDir = os.getenv("UGT_VIVADO_BASE_DIR")
+VivadoBaseDir = os.getenv("UGT_VIVADO_BASE_DIR", "")
 if not VivadoBaseDir:
     raise RuntimeError("UGT_VIVADO_BASE_DIR is not defined.")
 
@@ -32,16 +32,16 @@ if not os.path.isdir(vivadoPath):
 DefaultBoardType: str = "mp7xe_690"
 """Default board type to be used."""
 
-DefaultFirmwareDir: str = os.path.expanduser("~/work_synth/production")
+DefaultFirmwareDir: str = os.path.join(os.getcwd(), "work_synth", "production")
 """Default output directory for firmware builds."""
 
-DefaultGitlabUrlIPB: str = "https://github.com/ipbus/ipbus-firmware.git"
+DefaultIpbusUrl: str = "https://github.com/ipbus/ipbus-firmware.git"
 """Default URL IPB FW repo."""
 
-DefaultIpbFwTag: str = "v1.4"
+DefaultIpbusTag: str = "v1.4"
 """Default tag IPB FW repo."""
 
-DefaultMP7Url: str = "https://gitlab.cern.ch/arnold/mp7.git"
+DefaultMP7Url: str = "https://gitlab.cern.ch:8443/arnold/mp7.git"  # TODO
 """Default URL MP7 FW repo."""
 
 DefaultMP7Tag: str = "v3.2.2_Vivado2021+_ugt"
@@ -127,8 +127,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("menu_xml", help="path to menu xml file (in repository or local")
     parser.add_argument("--vivado", metavar="<version>", default=DefaultVivadoVersion, type=utils.vivado_t, help=f"Vivado version to run (default is {DefaultVivadoVersion!r})")
-    parser.add_argument("--ipburl", metavar="<path>", default=DefaultGitlabUrlIPB, help=f"URL of IPB firmware repo (default is {DefaultGitlabUrlIPB!r})")
-    parser.add_argument("-i", "--ipbtag", metavar="<tag>", default=DefaultIpbFwTag, help=f"IPBus firmware repo: tag or branch name (default is {DefaultIpbFwTag!r})")
+    parser.add_argument("--ipburl", metavar="<path>", default=DefaultIpbusUrl, help=f"URL of IPB firmware repo (default is {DefaultIpbusUrl!r})")
+    parser.add_argument("-i", "--ipbtag", metavar="<tag>", default=DefaultIpbusTag, help=f"IPBus firmware repo: tag or branch name (default is {DefaultIpbusTag!r})")
     parser.add_argument("--mp7url", metavar="<path>", default=DefaultMP7Url, help=f"URL of MP7 firmware repo (default is {DefaultMP7Url!r})")
     parser.add_argument("--mp7tag", metavar="<tag>", default=DefaultMP7Tag, help=f"MP7 firmware repo: tag name (default is {DefaultMP7Tag!r})")
     parser.add_argument("--ugturl", metavar="<path>", default=DefaultUgtUrl, help=f"URL of ugt firmware repo (default is {DefaultUgtUrl!r})")

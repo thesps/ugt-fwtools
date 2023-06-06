@@ -2,6 +2,20 @@
 
 Firmware build tools for Phase-1 uGT
 
+## Prerequisites
+
+**Note:** this section will be subject to changes.
+
+The tools require following environment variables to be set, eg. by sourcing a bash script.
+
+```bash
+export UGT_QUESTASIM_SIM_PATH=/opt/mentor/questa/2021.1_2
+export UGT_QUESTASIM_LIBS_PATH=$HOME/.questasimlibs
+export UGT_VIVADO_BASE_DIR=/opt/Xilinx/Vivado
+export UGT_VIVADO_VERSION=2021.2
+source ${VIVADO_BASE_DIR}/${UGT_VIVADO_VERSION}/settings64.sh
+```
+
 ## Install
 
 ```bash

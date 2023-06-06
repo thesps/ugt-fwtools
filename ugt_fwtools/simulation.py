@@ -37,8 +37,6 @@ ok_green = ("\033[1;32m OK     \033[0m")
 ignore_yellow = ("\033[1;33m IGNORE \033[0m")
 error_red = ("\033[1;31m ERROR  \033[0m")
 
-# reset = "\033[0m"
-
 QuestaSimPath = os.getenv("UGT_QUESTASIM_SIM_PATH")
 if not QuestaSimPath:
     raise RuntimeError("UGT_QUESTASIM_SIM_PATH is not defined.")
@@ -47,13 +45,13 @@ DefaultQuestaSimLibsPath = os.getenv("UGT_QUESTASIM_LIBS_PATH")
 if not DefaultQuestaSimLibsPath:
     raise RuntimeError("UGT_QUESTASIM_LIBS_PATH is not defined.")
 
-DefaultGitlabUrlIPB: str = "https://github.com/ipbus/ipbus-firmware"
+DefaultIpbusUrl: str = "https://github.com/ipbus/ipbus-firmware.git"
 """Default URL IPB FW repo."""
 
-DefaultIpbFwTag: str = "v1.4"
+DefaultIpbusTag: str = "v1.4"
 """Default tag IPB FW repo."""
 
-DefaultMP7Url: str = "https://gitlab.cern.ch/arnold/mp7"
+DefaultMP7Url: str = "https://gitlab.cern.ch:8443/arnold/mp7.git"  # TODO
 """Default URL MP7 FW repo."""
 
 DefaultMP7Tag: str = "v3.2.2_Vivado2021+_ugt"
@@ -592,8 +590,8 @@ def parse_args():
     parser.add_argument("--ugttag", default=DefaultUgtTag)
     parser.add_argument("--mp7_url", default=DefaultMP7Url, help="MP7 repo (default is {!r})".format(DefaultMP7Url))
     parser.add_argument("--mp7_repo_tag", default=DefaultMP7Tag, help="MP7 repo tag (default is {!r})".format(DefaultMP7Tag))
-    parser.add_argument("--ipb_fw_url", default=DefaultGitlabUrlIPB, help="IPBus firmware repo (default is {!r})".format(DefaultGitlabUrlIPB))
-    parser.add_argument("--ipb_fw_tag", default=DefaultIpbFwTag, help="IPBus firmware repo tag (default is {!r})".format(DefaultIpbFwTag))
+    parser.add_argument("--ipb_fw_url", default=DefaultIpbusUrl, help="IPBus firmware repo (default is {!r})".format(DefaultIpbusUrl))
+    parser.add_argument("--ipb_fw_tag", default=DefaultIpbusTag, help="IPBus firmware repo tag (default is {!r})".format(DefaultIpbusTag))
     parser.add_argument("--questasimlibs", default=DefaultQuestaSimLibsPath, help="Questasim Vivado libraries directory name (default is {!r})".format(DefaultQuestaSimLibsPath))
     parser.add_argument("--output", metavar="path", type=os.path.abspath, help="path to output directory")
     parser.add_argument("--view_wave", action="store_true", help="shows the waveform")

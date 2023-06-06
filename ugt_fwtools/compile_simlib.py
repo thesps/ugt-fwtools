@@ -4,6 +4,8 @@ import os
 import shutil
 import tempfile
 
+from . import utils
+
 DefaultQuestaSimPath = "/opt/mentor/questasim"
 DefaultQuestaSimLibsPath = "questasimlibs"
 
