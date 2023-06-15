@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.1] - 2023-06-15
 
+### Changed
+- default mp7 repository to `https://gitlab.cern.ch/cms-l1-globaltrigger/mp7.git`
+
 ### Fixed
 - bugs in modules `fwpacker` and `synthesis`
 
