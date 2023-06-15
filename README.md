@@ -19,7 +19,7 @@ source ${VIVADO_BASE_DIR}/${UGT_VIVADO_VERSION}/settings64.sh
 ## Install
 
 ```bash
-pip install git+https://github.com/cms-l1-globaltrigger/ugt-fwtools.git@main
+pip install git+https://github.com/cms-l1-globaltrigger/ugt-fwtools.git@0.1.1
 ```
 
 ## Synthesis

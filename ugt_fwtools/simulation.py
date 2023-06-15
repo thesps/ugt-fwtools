@@ -51,7 +51,7 @@ DefaultIpbusUrl: str = "https://github.com/ipbus/ipbus-firmware.git"
 DefaultIpbusTag: str = "v1.4"
 """Default tag IPB FW repo."""
 
-DefaultMP7Url: str = "https://gitlab.cern.ch:8443/arnold/mp7.git"  # TODO
+DefaultMP7Url: str = "https://:@gitlab.cern.ch:8443/cms-l1-globaltrigger/mp7.git"
 """Default URL MP7 FW repo."""
 
 DefaultMP7Tag: str = "v3.2.2_Vivado2021+_ugt"

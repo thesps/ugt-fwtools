@@ -41,7 +41,7 @@ DefaultIpbusUrl: str = "https://github.com/ipbus/ipbus-firmware.git"
 DefaultIpbusTag: str = "v1.4"
 """Default tag IPB FW repo."""
 
-DefaultMP7Url: str = "https://gitlab.cern.ch:8443/arnold/mp7.git"  # TODO
+DefaultMP7Url: str = "https://:@gitlab.cern.ch:8443/cms-l1-globaltrigger/mp7.git"
 """Default URL MP7 FW repo."""
 
 DefaultMP7Tag: str = "v3.2.2_Vivado2021+_ugt"
@@ -207,13 +207,11 @@ def main() -> None:
     logging.info("retrieve %r...", html_filename)
     download_file_from_url(html_uri, html_filename)
 
+    # Parse menu content
     menu = XmlMenu(xml_filename)
 
-    # Fetch menu name from path.
-    menu_name = menu.name
-
-    if not menu_name.startswith("L1Menu_"):
-        raise RuntimeError(f"Invamenu_nameme: {menu_name!r}")
+    if not menu.name.startswith("L1Menu_"):
+        raise RuntimeError(f"Invamenu_nameme: {menu.name!r}")
 
     # Fetch number of menu modules.
     modules = menu.n_modules
