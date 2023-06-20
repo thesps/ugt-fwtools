@@ -22,7 +22,7 @@ source ${VIVADO_BASE_DIR}/${UGT_VIVADO_VERSION}/settings64.sh
 pip install git+https://github.com/cms-l1-globaltrigger/ugt-fwtools.git@0.1.1
 ```
 
-## Synthesis
+## Simulation
 
 ```bash
 ugt-simulate sample.xml --tv sample_ttbar.txt
