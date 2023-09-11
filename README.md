@@ -30,6 +30,8 @@ ugt-simulate sample.xml --tv sample_ttbar.txt
 
 Use command line option `--ugttag <tag>` to run with a different ugt tag or branch.
 
+To persist the simulation results use option `--output <dir>`.
+
 ## Synthesis
 
 ```bash
