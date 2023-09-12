@@ -10,8 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.2] - 2023-09-12
 
 ### Changed
-- module 'simulation' (added option "-lic_noqueue" to 'cmd' [vsim_bin, ...] in 'run_vsim')
-to prevent waiting for license in a queue.  
+- added option `-lic_noqueue` to vsim command to prevent waiting for license in a queue.
 
 ## [0.1.1] - 2023-06-15
 
@@ -24,8 +23,9 @@ to prevent waiting for license in a queue.
 ## [0.1.0] - 2023-05-12
 
 ### Added
-- Migrated scripts from `ugt_mp7_legacy/scripts` repo.
+- migrated scripts from `ugt_mp7_legacy/scripts` repo.
 
-[Unreleased]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/compare/0.1.1...HEAD
+[Unreleased]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/compare/0.1.2...HEAD
+[0.1.2]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/releases/tag/0.1.0

@@ -131,7 +131,7 @@ def run_vsim(vsim, module, msgmode, ini_file):
     """uses class module, arg msgmode and ini file path to start the simulation"""
     vsim_bin = os.path.join(vsim, "bin", "vsim")
     with open(module.results_log, "wt") as logfile:
-        cmd = [vsim_bin, "-c", "-msgmode", msgmode, "-modelsimini", ini_file, "-do", "do {filename}", "-lic_noqueue; quit -f".format(filename=os.path.join(module.path, DO_FILE))]
+        cmd = [vsim_bin, "-lic_noqueue", "-c", "-msgmode", msgmode, "-modelsimini", ini_file, "-do", "do {filename}; quit -f".format(filename=os.path.join(module.path, DO_FILE))]
         logging.info("starting simulation for module_%d...", module.id)
         logging.info("executing: %s", " ".join(['"{0}"'.format(arg) if " " in str(arg) else str(arg) for arg in cmd]))
         subprocess.run(cmd, stdout=logfile).check_returncode()
@@ -432,7 +432,7 @@ def run_simulation_questa(sim_area, project_dir, a_mp7_url, a_mp7_tag, a_menu, a
     for thread in threads:  # waits for all threads to finish
         thread.join()
     logging.info("finished all simulations")
-    print("")
+    print()
 
     algos_sim = {}
     algos_tv = {}
@@ -557,7 +557,7 @@ def run_simulation_questa(sim_area, project_dir, a_mp7_url, a_mp7_tag, a_menu, a
                 sum_log.info("    Index: {}".format(index))
                 sum_log.info("    algoname: {}".format(menu.algorithms.byIndex(index).name if menu.algorithms.byIndex(index).name else "not found in menu"))
 
-    print("")
+    print()
 
     if not json_err_msg or not success:
         logging.info(failed_red)
@@ -647,6 +647,7 @@ def main():
       )
     finally:
         shutil.rmtree(sim_area)
+
 
 if __name__ == "__main__":
     main()
