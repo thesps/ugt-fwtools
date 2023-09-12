@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2023-09-12
+
+### Changed
+- module 'simulation' (added option "-lic_noqueue" to 'cmd' [vsim_bin, ...] in 'run_vsim')
+to prevent waiting for license in a queue.  
+
 ## [0.1.1] - 2023-06-15
 
 ### Changed

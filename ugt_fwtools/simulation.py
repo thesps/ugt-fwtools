@@ -131,7 +131,7 @@ def run_vsim(vsim, module, msgmode, ini_file):
     """uses class module, arg msgmode and ini file path to start the simulation"""
     vsim_bin = os.path.join(vsim, "bin", "vsim")
     with open(module.results_log, "wt") as logfile:
-        cmd = [vsim_bin, "-c", "-msgmode", msgmode, "-modelsimini", ini_file, "-do", "do {filename}; quit -f".format(filename=os.path.join(module.path, DO_FILE))]
+        cmd = [vsim_bin, "-c", "-msgmode", msgmode, "-modelsimini", ini_file, "-do", "do {filename}", "-lic_noqueue; quit -f".format(filename=os.path.join(module.path, DO_FILE))]
         logging.info("starting simulation for module_%d...", module.id)
         logging.info("executing: %s", " ".join(['"{0}"'.format(arg) if " " in str(arg) else str(arg) for arg in cmd]))
         subprocess.run(cmd, stdout=logfile).check_returncode()
