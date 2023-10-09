@@ -46,6 +46,7 @@ def main() -> None:
     project_type =  args.ugt
     module_id = args.mod_id
     module_name = f"module_{module_id}"
+    proj_path = os.path.join(ipbb_dir, args.build, "proj")
 
     # Check for UGT_VIVADO_BASE_DIR
     vivado_base_dir = os.getenv("UGT_VIVADO_BASE_DIR")
@@ -60,7 +61,9 @@ def main() -> None:
             f"  check if Xilinx Vivado {args.vivado} is installed on this machine."
 	)
 
-        
+    if not os.path.exists(proj_path):
+        raise RuntimeError(f"Path {proj_path!r} does not exist")    
+    
     logging.info("===========================================================================")
     logging.info("running IPBB project, synthesis and implementation, creating bitfile for module %s ...", module_id)
 
