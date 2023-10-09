@@ -4,6 +4,7 @@ import configparser
 import logging
 import os
 import subprocess
+from . import utils
 
 DefaultVivadoVersion = os.getenv("UGT_VIVADO_VERSION", "")
 if not DefaultVivadoVersion:
@@ -17,17 +18,7 @@ vivadoPath = os.path.abspath(os.path.join(VivadoBaseDir, DefaultVivadoVersion))
 if not os.path.isdir(vivadoPath):
     raise RuntimeError("No installation of Vivado in %r" % vivadoPath)
 
-def build_str_t(version: str) -> str:
-    """Validates build number."""
-    if not re.match(r'^0x[A-Fa-f0-9]{4}$', version):
-        raise ValueError("not a valid build version: '{version}'".format(**locals()))
-    return version
-
-def vivado_t(version: str) -> str:
-    """Validates Xilinx Vivado version number."""
-    if not re.match(r'^\d{4}\.\d{1}$', version):
-        raise ValueError("not a xilinx vivado version: '{version}'".format(**locals()))
-    return version
+DefaultUgtRepoName = "mp7_ugt_legacy"
 
 def show_screen_sessions() -> None:
     subprocess.run(["screen", "-ls"])
@@ -38,10 +29,11 @@ def start_screen_session(session: str, commands: str) -> None:
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--vivado", metavar="<version>", default=DefaultVivadoVersion, type=vivado_t, help=f"Vivado version to run (default is {DefaultVivadoVersion!r})")
-    parser.add_argument("--build", type=build_str_t, required=True, metavar="<version>", help="menu build version (eg. 0x1001) [required]")
+    parser.add_argument("--vivado", metavar="<version>", default=DefaultVivadoVersion, type=utils.vivado_t, help=f"Vivado version to run (default is {DefaultVivadoVersion!r})")
+    parser.add_argument("--build", type=utils.build_str_t, required=True, metavar="<version>", help="menu build version (eg. 0x1001) [required]")
     parser.add_argument("--mod_id", required=True, help="module number (eg. 1) [required]")
     parser.add_argument("--path", metavar="<path>", required=True, type=os.path.abspath, help=f"fw build path [required] (eg. ../work_synth/production")
+    parser.add_argument("--ugt", default=DefaultUgtRepoName, help=f"ugt repo name (default is {DefaultUgtRepoName!r})")
     return parser.parse_args()
 
 def main() -> None:
@@ -51,7 +43,7 @@ def main() -> None:
     args = parse_args()
     
     ipbb_dir = args.path
-    project_type = "mp7_ugt_legacy"
+    project_type =  args.ugt
     module_id = args.mod_id
     module_name = f"module_{module_id}"
 
@@ -82,7 +74,6 @@ def main() -> None:
     session = f"build_{project_type}_{args.build}_{module_id}"
     logging.info("starting screen session %r for module %s ...", session, module_id)
 
-#    run_command(command)
     start_screen_session(session, command)
 
     # list running screen sessions
