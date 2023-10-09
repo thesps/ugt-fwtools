@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2023-10-09
+
+### Added
+- script synth_1_module.py (re-synthesis of only one module)
+
 ## [0.1.2] - 2023-09-12
 
 ### Changed
@@ -25,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - migrated scripts from `ugt_mp7_legacy/scripts` repo.
 
-[Unreleased]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/compare/0.1.2...HEAD
+[Unreleased]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/compare/0.1.3...HEAD
+[0.1.3]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/cms-l1-globaltrigger/ugt-fwtools/releases/tag/0.1.0
