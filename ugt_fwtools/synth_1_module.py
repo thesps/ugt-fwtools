@@ -70,7 +70,7 @@ def main() -> None:
     args.settings64 = os.path.join(args.vivado_base_dir, args.vivado, "settings64.sh")
     if not os.path.isfile(args.settings64):
         raise RuntimeError(
-            f"no such Xilinx Vivado settings file {settings64!r}\n"
+            f"no such Xilinx Vivado settings file {args.settings64!r}\n"
             f"  check if Xilinx Vivado {args.vivado} is installed on this machine."
 	)
 
