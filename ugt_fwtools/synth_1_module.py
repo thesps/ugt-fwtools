@@ -18,7 +18,7 @@ vivadoPath = os.path.abspath(os.path.join(VivadoBaseDir, DefaultVivadoVersion))
 if not os.path.isdir(vivadoPath):
     raise RuntimeError("No installation of Vivado in %r" % vivadoPath)
 
-DefaultUgtRepoName = "mp7_ugt_legacy"
+#DefaultUgtRepoName = "mp7_ugt_legacy"
 
 def implement_module(module_id: int, module_name: str, args) -> None:
     """Run module implementation in screen session."""
@@ -63,12 +63,12 @@ def main() -> None:
 
     # Check for UGT_VIVADO_BASE_DIR
     args.vivado_base_dir = os.getenv("UGT_VIVADO_BASE_DIR")
-    if not vivado_base_dir:
+    if not args.vivado_base_dir:
         raise RuntimeError("Environment variable 'UGT_VIVADO_BASE_DIR' not set. Set with: 'export UGT_VIVADO_BASE_DIR=...'")
 
     # Vivado settings
     args.settings64 = os.path.join(args.vivado_base_dir, args.vivado, "settings64.sh")
-    if not os.path.isfile(settings64):
+    if not os.path.isfile(args.settings64):
         raise RuntimeError(
             f"no such Xilinx Vivado settings file {settings64!r}\n"
             f"  check if Xilinx Vivado {args.vivado} is installed on this machine."
@@ -98,7 +98,7 @@ def main() -> None:
     logging.info("===========================================================================")
     show_screen_sessions()
 
-    os.chdir(ipbb_dir)
+    os.chdir(args.ipbb_dir)
     
 if __name__ == "__main__":
     main()
