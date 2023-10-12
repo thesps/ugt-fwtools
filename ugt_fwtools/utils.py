@@ -1,5 +1,6 @@
 import datetime
 import glob
+import logging
 import shutil
 import stat
 import pwd
@@ -7,7 +8,7 @@ import socket
 import subprocess
 import os
 import re
-from typing import Dict
+from typing import Dict, Optional
 
 
 def build_t(value: str) -> str:
@@ -135,3 +136,70 @@ def username():
 
 def vivado_batch(source: str) -> None:
     subprocess.run(["vivado", "-mode", "batch", "-source", source, "-nojournal", "-nolog"]).check_returncode()
+
+
+def colored(text: str, color: Optional[str] = None, on_color: Optional[str] = None, attrs: Optional[str] = None) -> str:
+    """Colorize text using ANSI escape sequences."""
+    COLORS = {
+        'grey': '30', 'red': '31', 'green': '32', 'yellow': '33',
+        'blue': '34', 'magenta': '35', 'cyan': '36', 'white': '37',
+    }
+
+    BACKGROUND_COLORS = {
+        'on_grey': '40', 'on_red': '41', 'on_green': '42', 'on_yellow': '43',
+        'on_blue': '44', 'on_magenta': '45', 'on_cyan': '46', 'on_white': '47',
+    }
+
+    ATTRIBUTES = {
+        'bold': '1', 'dark': '2', 'underline': '4', 'blink': '5',
+        'reverse': '7', 'concealed': '8',
+    }
+
+    if color is None and on_color is None and attrs is None:
+        return text
+
+    code_list = []
+
+    if color:
+        code_list.append(COLORS[color])
+    if on_color:
+        code_list.append(BACKGROUND_COLORS[on_color])
+    if attrs:
+        for attr in attrs:
+            code_list.append(ATTRIBUTES[attr])
+
+    codes = ";".join(code_list)
+    return f"\033[{codes}m{text}\033[0m"
+
+
+class ColoredFormatter(logging.Formatter):
+    """Formatter to add colors to logging based on log levels."""
+    COLORS = {
+        'DEBUG': 'blue',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'magenta'
+    }
+
+    def format(self, record):
+        log_message = super(ColoredFormatter, self).format(record)
+        return colored(log_message, color=self.COLORS.get(record.levelname))
+
+
+def get_colored_logger(name: str, level: int = logging.DEBUG) -> logging.Logger:
+    """Creates a default logger with colored output."""
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    if not logger.hasHandlers():  # Prevent adding multiple handlers to the same logger
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+
+        formatter = ColoredFormatter('%(levelname)s: %(message)s')
+        ch.setFormatter(formatter)
+
+        logger.addHandler(ch)
+
+    return logger
