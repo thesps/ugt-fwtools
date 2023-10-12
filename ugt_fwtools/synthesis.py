@@ -122,6 +122,76 @@ def replace_vhdl_templates(vhdl_snippets_dir: str, src_fw_dir: str, dest_fw_dir:
     utils.template_replace(os.path.join(gtl_fdl_wrapper_dir, "gtl_module_tpl.vhd"), replace_map, os.path.join(dest_fw_dir, "gtl_module.vhd"))
 
 
+def create_build_area(args):
+    """Creating IPBB build area."""
+    subprocess.run(["ipbb", "init", args.ipbb_dir]).check_returncode()
+    subprocess.run(["ipbb", "add", "git", args.ipburl, "-b", args.ipbtag], cwd=args.ipbb_dir).check_returncode()
+    subprocess.run(["ipbb", "add", "git", args.mp7url, "-b", args.mp7tag], cwd=args.ipbb_dir).check_returncode()
+    subprocess.run(["ipbb", "add", "git", args.ugturl, "-b", args.ugttag], cwd=args.ipbb_dir).check_returncode()
+
+
+def create_module(module_id: int, module_name: str, args) -> None:
+    """Create module IPBB project."""
+    subprocess.run(["ipbb", "proj", "create", "vivado", module_name, f"{args.board_type}:../{args.project_type}"], cwd=args.ipbb_dir).check_returncode()
+
+
+def implement_module(module_id: int, module_name: str, args) -> None:
+    """Run module implementation in screen session."""
+    # IPBB commands: running IPBB project, synthesis and implementation, creating bitfile
+    cmd_ipbb_project = "ipbb vivado generate-project --single"  # workaround to prevent "hang-up" in make-project with IPBB v0.5.2
+    cmd_ipbb_synth = "ipbb vivado synth impl package"
+
+    # Set variable "module_id" for tcl script (l1menu_files.tcl in uGT_algo.dep)
+    command = f'cd; source {args.settings64}; cd {args.ipbb_dir}/proj/{module_name}; module_id={module_id} {cmd_ipbb_project} && {cmd_ipbb_synth}'
+
+    session = f"build_{args.project_type}_{args.build}_{module_id}"
+    logging.info("starting screen session %r for module %s ...", session, module_id)
+    start_screen_session(session, command)
+
+
+def write_build_config(filename: str, args) -> None:
+    """Creating build configuration file."""
+
+    config = configparser.RawConfigParser()
+    config.add_section("environment")
+    config.set("environment", "timestamp", args.timestamp)
+    config.set("environment", "hostname", args.hostname)
+    config.set("environment", "username", args.username)
+
+    config.add_section("menu")
+    config.set("menu", "build", utils.build_t(args.build))
+    config.set("menu", "name", args.menu_name)
+    config.set("menu", "location", args.xml_uri)
+    config.set("menu", "modules", args.modules)
+
+    config.add_section("ipbb")
+    config.set("ipbb", "version", args.ipbb_version)
+
+    config.add_section("vivado")
+    config.set("vivado", "version", args.vivado)
+
+    config.add_section("firmware")
+    config.set("firmware", "ipburl", args.ipburl)
+    config.set("firmware", "ipbtag", args.ipbtag)
+    config.set("firmware", "mp7url", args.mp7url)
+    config.set("firmware", "mp7tag", args.mp7tag)
+    config.set("firmware", "ugturl", args.ugturl)
+    config.set("firmware", "ugttag", args.ugttag)
+    config.set("firmware", "type", args.project_type)
+    config.set("firmware", "buildarea", args.ipbb_dir)
+
+    config.add_section("device")
+    config.set("device", "type", args.board)
+    config.set("device", "name", args.board_type)
+    config.set("device", "alias", BoardAliases[args.board])
+
+    # Writing configuration file
+    with open(filename, "wt") as fp:
+        config.write(fp)
+
+    logging.info("created configuration file: %r", filename)
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
@@ -145,63 +215,71 @@ def main() -> None:
     # Parse command line arguments.
     args = parse_args()
 
-    xml_uri = get_uri(args.menu_xml)
-    menu_name = get_menu_name(xml_uri)
+    args.timestamp = utils.timestamp()
+    args.hostname = utils.hostname()
+    args.username = utils.username()
+
+    args.xml_uri = get_uri(args.menu_xml)
+    args.menu_name = get_menu_name(args.xml_uri)
 
     # check menu name
-    utils.menuname_t(menu_name)
+    utils.menuname_t(args.menu_name)
 
     # Setup console logging
     logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
     # Check for UGT_VIVADO_BASE_DIR
-    vivado_base_dir = os.getenv("UGT_VIVADO_BASE_DIR")
-    if not vivado_base_dir:
+    args.vivado_base_dir = os.getenv("UGT_VIVADO_BASE_DIR")
+    if not args.vivado_base_dir:
         raise RuntimeError("Environment variable 'UGT_VIVADO_BASE_DIR' not set. Set with: 'export UGT_VIVADO_BASE_DIR=...'")
+
+    # Vivado settings
+    args.settings64 = os.path.join(args.vivado_base_dir, args.vivado, "settings64.sh")
+    if not os.path.isfile(args.settings64):
+        raise RuntimeError(
+            f"no such Xilinx Vivado settings file {args.settings64!r}\n"
+            f"  check if Xilinx Vivado {args.vivado} is installed on this machine."
+        )
 
     # TODO
     # Board type taken from mp7url repo name
     board_type_repo_name = os.path.basename(args.mp7url)
     if board_type_repo_name.find(".") > 0:
-        board_type = board_type_repo_name.split(".")[0]    # Remove ".git" from repo name
+        args.board_type = board_type_repo_name.split(".")[0]    # Remove ".git" from repo name
     else:
-        board_type = board_type_repo_name
+        args.board_type = board_type_repo_name
 
     # TODO
     # Project type taken from ugturl repo name
     project_type_repo_name = os.path.basename(args.ugturl)
     if project_type_repo_name.find(".") > 0:
-        project_type = project_type_repo_name.split(".")[0]    # Remove ".git" from repo name
+        args.project_type = project_type_repo_name.split(".")[0]    # Remove ".git" from repo name
     else:
-        project_type = project_type_repo_name
+        args.project_type = project_type_repo_name
 
     # TODO
     vivado_version = f"vivado_{args.vivado}"
-    ipbb_dir = os.path.join(args.path, args.build)
+    args.ipbb_dir = os.path.join(args.path, args.build)
 
-    if os.path.isdir(ipbb_dir):
-        raise RuntimeError(f"build area already exists: {ipbb_dir}")
+    if os.path.isdir(args.ipbb_dir):
+        raise RuntimeError(f"build area already exists: {args.ipbb_dir}")
 
     logging.info("===========================================================================")
     logging.info("creating IPBB area ...")
 
-    ipbb_version = get_ipbb_version()
-    logging.info("ipbb_version: %s", ipbb_version)
+    args.ipbb_version = get_ipbb_version()
+    logging.info("ipbb_version: %s", args.ipbb_version)
 
-    # IPBB commands: creating IPBB area
-    subprocess.run(["ipbb", "init", ipbb_dir]).check_returncode()
-    subprocess.run(["ipbb", "add", "git", args.ipburl, "-b", args.ipbtag], cwd=ipbb_dir).check_returncode()
-    subprocess.run(["ipbb", "add", "git", args.mp7url, "-b", args.mp7tag], cwd=ipbb_dir).check_returncode()
-    subprocess.run(["ipbb", "add", "git", args.ugturl, "-b", args.ugttag], cwd=ipbb_dir).check_returncode()
+    create_build_area(args)
 
-    xml_filename = os.path.join(ipbb_dir, "src", f"{menu_name}.xml")
+    xml_filename = os.path.join(args.ipbb_dir, "src", f"{args.menu_name}.xml")
 
     logging.info("===========================================================================")
     logging.info("retrieve %r...", xml_filename)
-    download_file_from_url(xml_uri, xml_filename)
+    download_file_from_url(args.xml_uri, xml_filename)
 
-    html_uri = urllib.parse.urljoin(xml_uri, f"../doc/{menu_name}.html")
-    html_filename = os.path.join(ipbb_dir, "src", f"{menu_name}.html")
+    html_uri = urllib.parse.urljoin(args.xml_uri, f"../doc/{args.menu_name}.html")
+    html_filename = os.path.join(args.ipbb_dir, "src", f"{args.menu_name}.html")
 
     logging.info("===========================================================================")
     logging.info("retrieve %r...", html_filename)
@@ -214,18 +292,18 @@ def main() -> None:
         raise RuntimeError(f"Invamenu_nameme: {menu.name!r}")
 
     # Fetch number of menu modules.
-    modules = menu.n_modules
+    args.modules = menu.n_modules
 
-    if not modules:
+    if not args.modules:
         raise RuntimeError("Menu contains no modules")
 
-    ipbb_src_fw_dir = os.path.abspath(os.path.join(ipbb_dir, "src", project_type, "firmware"))
+    ipbb_src_fw_dir = os.path.abspath(os.path.join(args.ipbb_dir, "src", args.project_type, "firmware"))
 
-    for module_id in range(modules):
+    for module_id in range(args.modules):
         module_name = f"module_{module_id}"
-        ipbb_module_dir = os.path.join(ipbb_dir, module_name)
+        ipbb_module_dir = os.path.join(args.ipbb_dir, module_name)
 
-        ipbb_dest_fw_dir = os.path.abspath(os.path.join(ipbb_dir, "src", module_name))
+        ipbb_dest_fw_dir = os.path.abspath(os.path.join(args.ipbb_dir, "src", module_name))
         os.makedirs(ipbb_dest_fw_dir)
 
         # Download generated VHDL snippets from repository and replace VHDL templates
@@ -239,7 +317,7 @@ def main() -> None:
         # TODO
         for vhdl_snippet in vhdl_snippets:
             filename = os.path.join(vhdl_snippets_dir, vhdl_snippet)
-            snippet_uri = urllib.parse.urljoin(xml_uri, f"../vhdl/{module_name}/src/{vhdl_snippet}")
+            snippet_uri = urllib.parse.urljoin(args.xml_uri, f"../vhdl/{module_name}/src/{vhdl_snippet}")
             download_file_from_url(snippet_uri, filename)
 
         replace_vhdl_templates(vhdl_snippets_dir, ipbb_src_fw_dir, ipbb_dest_fw_dir)
@@ -249,80 +327,24 @@ def main() -> None:
         top_pkg = os.path.join(ipbb_src_fw_dir, "hdl", "packages", "gt_mp7_top_pkg.vhd")
         subprocess.run(["python", os.path.join(ipbb_src_fw_dir, "..", "scripts", "pkgpatch.py"), "--build", args.build, top_pkg_tpl, top_pkg]).check_returncode()
 
-        # Vivado settings
-        settings64 = os.path.join(vivado_base_dir, args.vivado, "settings64.sh")
-        if not os.path.isfile(settings64):
-            raise RuntimeError(
-                f"no such Xilinx Vivado settings file {settings64!r}\n"
-                f"  check if Xilinx Vivado {args.vivado} is installed on this machine."
-            )
-
         logging.info("===========================================================================")
         logging.info("creating IPBB project for module %s ...", module_id)
 
-        subprocess.run(["ipbb", "proj", "create", "vivado", module_name, f"{board_type}:../{project_type}"], cwd=ipbb_dir).check_returncode()
+        create_module(module_id, module_name, args)
 
         logging.info("===========================================================================")
         logging.info("running IPBB project, synthesis and implementation, creating bitfile for module %s ...", module_id)
 
-        # IPBB commands: running IPBB project, synthesis and implementation, creating bitfile
-        cmd_ipbb_project = "ipbb vivado generate-project --single"  # workaround to prevent "hang-up" in make-project with IPBB v0.5.2
-        cmd_ipbb_synth = "ipbb vivado synth impl package"
-
-        # Set variable "module_id" for tcl script (l1menu_files.tcl in uGT_algo.dep)
-        command = f'cd; source {settings64}; cd {ipbb_dir}/proj/{module_name}; module_id={module_id} {cmd_ipbb_project} && {cmd_ipbb_synth}'
-
-        session = f"build_{project_type}_{args.build}_{module_id}"
-        logging.info("starting screen session %r for module %s ...", session, module_id)
-        start_screen_session(session, command)
+        implement_module(module_id, module_name, args)
 
     # list running screen sessions
     logging.info("===========================================================================")
     show_screen_sessions()
 
-    os.chdir(ipbb_dir)
+    # Write build configuration file
+    config_filename = os.path.join(args.ipbb_dir, f"build_{args.build}.cfg")
+    write_build_config(config_filename, args)
 
-    # Creating configuration file.
-    config = configparser.RawConfigParser()
-    config.add_section("environment")
-    config.set("environment", "timestamp", utils.timestamp())
-    config.set("environment", "hostname", utils.hostname())
-    config.set("environment", "username", utils.username())
-
-    config.add_section("menu")
-    config.set("menu", "build", utils.build_t(args.build))
-    config.set("menu", "name", menu_name)
-    config.set("menu", "location", xml_uri)
-    config.set("menu", "modules", modules)
-
-    config.add_section("ipbb")
-    config.set("ipbb", "version", ipbb_version)
-
-    config.add_section("vivado")
-    config.set("vivado", "version", args.vivado)
-
-    config.add_section("firmware")
-    config.set("firmware", "ipburl", args.ipburl)
-    config.set("firmware", "ipbtag", args.ipbtag)
-    config.set("firmware", "mp7url", args.mp7url)
-    config.set("firmware", "mp7tag", args.mp7tag)
-    config.set("firmware", "ugturl", args.ugturl)
-    config.set("firmware", "ugttag", args.ugttag)
-    config.set("firmware", "type", project_type)
-    config.set("firmware", "buildarea", ipbb_dir)
-
-    config.add_section("device")
-    config.set("device", "type", args.board)
-    config.set("device", "name", board_type)
-    config.set("device", "alias", BoardAliases[args.board])
-
-    config_filename = f"build_{args.build}.cfg"
-
-    # Writing configuration file
-    with open(config_filename, "wt") as fp:
-        config.write(fp)
-
-    logging.info("created configuration file: %r", config_filename)
     logging.info("done.")
 
 
