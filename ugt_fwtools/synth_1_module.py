@@ -33,7 +33,7 @@ def main() -> None:
     if not os.path.isfile(args.path):
         message = f"\n===> no such file {args.path!r}\n"
         print_error(message) 
-        raise RuntimeError() 
+        raise RuntimeError("missing build config file") 
 
     config = configparser.ConfigParser()
     config.read(args.path)
@@ -52,14 +52,14 @@ def main() -> None:
     if not args.vivado_base_dir:
         message = "\n===> environment variable 'UGT_VIVADO_BASE_DIR' not set. Set with: 'export UGT_VIVADO_BASE_DIR=...'\n"
         print_error(message) 
-        raise RuntimeError() 
+        raise RuntimeError("missing variable: UGT_VIVADO_BASE_DIR") 
 
     # Vivado settings
     args.settings64 = os.path.join(args.vivado_base_dir, args.vivado, "settings64.sh")
     if not os.path.isfile(args.settings64):
         message = f"\n===> no such Xilinx Vivado settings file {args.settings64!r}\n    check if Xilinx Vivado {args.vivado} is installed on this machine\n"
         print_error(message) 
-        raise RuntimeError() 
+        raise RuntimeError("missing settings file") 
 
     if os.path.exists(module_path):
         shutil.rmtree(module_path)
