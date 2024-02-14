@@ -53,6 +53,9 @@ DefaultUgtUrl: str = "https://github.com/cms-l1-globaltrigger/mp7_ugt_legacy.git
 DefaultUgtTag: str = "v1.22.3"
 """Default tag for ugt FW repo."""
 
+DefaultDryRun: bool = False
+"""Default setting for Dry Run."""
+
 vhdl_snippets: List[str] = [
     "algo_index.vhd",
     "gtl_module_instances.vhd",
@@ -206,6 +209,7 @@ def parse_args():
     parser.add_argument("--build", type=utils.build_str_t, required=True, metavar="<version>", help="menu build version (eg. 0x1001) [required]")
     parser.add_argument("--board", metavar="<type>", default=DefaultBoardType, choices=list(BoardAliases.keys()), help=f"set board type (default is {DefaultBoardType!r})")
     parser.add_argument("-p", "--path", metavar="<path>", default=DefaultFirmwareDir, type=os.path.abspath, help=f"fw build path (default is {DefaultFirmwareDir!r})")
+    parser.add_argument("-d", "--dryrun", action='store_true', default=DefaultDryRun, help=f"Dry Run: stop after producing ipbb projects, don't run synthesis (default is {DefaultDryRun})")
     return parser.parse_args()
 
 
@@ -335,7 +339,8 @@ def main() -> None:
         logging.info("===========================================================================")
         logging.info("running IPBB project, synthesis and implementation, creating bitfile for module %s ...", module_id)
 
-        implement_module(module_id, module_name, args)
+        if not args.dryrun:
+            implement_module(module_id, module_name, args)
 
     # list running screen sessions
     logging.info("===========================================================================")
